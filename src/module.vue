@@ -562,12 +562,9 @@ export default {
       hours : this.task.hours,
       notes : this.task.notes,
       project : this.task.project,
-      status: "published",
-      userId : this.user.id
+      status: "published"
     }).then(function (response) {
         console.log(response);
-        // that.$refs.form.reset();
-        // that.$refs.form.resetValidation();
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogClose();
       })
@@ -1005,8 +1002,14 @@ export default {
   .actions .action-buttons>*:not(:last-child) {
     margin-right: 5px;
   }
+  .v-item-group.v-tabs-items, .v-tabs {
+    padding: 0 16px;
+  }
 }
 @media screen and (min-width:768px) {
+  .v-item-group.v-tabs-items, .v-tabs {
+    padding: 0 48px;
+  }
   .v-card {
     display: flex;
     justify-content: space-between;
