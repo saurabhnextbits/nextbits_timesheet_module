@@ -944,7 +944,13 @@ export default {
 }
 
 .v-tab.horizontal {
-    flex-direction: column;
+  flex-direction: column;
+  height: 60px !important;
+  border-bottom: 3px solid transparent !important;
+}
+.v-tab.horizontal.active {
+  border-bottom: 3px solid #5842d0 !important;
+  font-weight: 800;
 }
 
 .v-card-subtitle{
@@ -965,6 +971,9 @@ export default {
 }
 .task-date-wrapper{
   position: relative;
+}
+.v-card:hover {
+    background-color: #f0f4f9;
 }
 
 @media screen and (max-width:767px) {
@@ -1013,6 +1022,9 @@ export default {
 <style>
 .v-drawer .cancel,.header-bar .nav-toggle {
     display: none;
+}
+.v-tab.horizontal.active strong{
+  font-weight: 800;
 }
 @media screen and (max-width:767px) {
   .today-btn > button {
