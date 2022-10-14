@@ -1,5 +1,5 @@
 <template>
-	<private-view title="Timesheet">
+	<private-view :title="isMobile ?(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:'short',  month:'short', day:'numeric'})):(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:'long', year:'numeric', month:'short', day:'numeric'}))" :key="Date.now()">
 		<template #navigation>
         <CustomNavigationLeftSidebar />
         </template>
@@ -15,50 +15,66 @@
       
 			
     </template>
+    <template #actions>
+
+      
+    
+      
+      <v-button icon rounded secondary @click="prev"  >
+        <v-icon  class="grey--text" name="navigate_before" />
+      </v-button>
+      <v-button icon rounded secondary @click="next"  >
+        <v-icon  class="grey--text" name="navigate_next" />
+      </v-button>
+      <v-button 
+        secondary
+        class="grey--text today-btn"
+        @click="setToday"
+      >
+        Today
+      </v-button>
+      <v-menu
+			ref="dateUnformated"
+			:close-on-content-click="false"
+			:show-arrow="true"
+			placement="bottom-start"
+			seamless
+			full-height
+		>
+			<template #activator="{ toggle }">
+        <v-button 
+        secondary
+        icon rounded
+        class="grey--text"
+        @click="toggle" 
+      >
+        <v-icon class="preview" name="event"  />
+      </v-button>
+				
+			</template>
+			<div class="date-input calendershow">
+				<v-date-picker
+					type="date"
+					:model-value="(new Date((new Date(this.dateUnformated).getTime()) - (new Date(this.dateUnformated).getTimezoneOffset()) * 60000).toISOString().substr(0, 10))"
+					@update:model-value="setDate"
+					
+				/>
+			</div>
+		</v-menu>
+      <v-button icon rounded @click="dialog=true" >
+      <v-icon  class="grey--text" name="add" />
+      </v-button>
+    </template>
 		<template v-if="view =='weekly'">
-      <v-card>
-        <v-card-title>{{ isMobile ?(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:"short",  month:"short", day:"numeric"})):(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"})) }}</v-card-title>
-        <v-card-subtitle>
-          <v-btn
-            outlined
-            class="grey--text mr-4 d-none d-sm-block"
-            @click="setToday"
-          >
-            Today
-          </v-btn>
-          <v-btn
-            fab
-            text
-            small
-            @click="prev"
-          >prev
-            <v-icon  class="grey--text">
-              mdi-chevron-left
-            </v-icon>
-          </v-btn>
-          <v-btn
-            fab
-            text
-            small
-            class="ml-2"
-            @click="next"
-          >next
-            <v-icon  class="grey--text">
-              mdi-chevron-right
-            </v-icon>
-          </v-btn>
-          <v-spacer></v-spacer>
-          
-        </v-card-subtitle>
-        <v-card-actions>
-          <v-button @click="dialog=true">Save</v-button>
-        </v-card-actions>
-      </v-card>
+      
 		<v-tabs v-model="tab" :key="Date.now()">
-			<v-tab v-for="item in tabItems" :key="item.id" :style="[item.tab == 'Total' ? 'pointer-events: none;':'']" >{{isMobile && item.tab != 'Total' ?item.tab.substring(0, 1):item.tab}}</v-tab>
+			<v-tab v-for="item in tabItems" :key="item.id" :style="[item.tab == 'Total' ? 'pointer-events: none;':'']" >
+        <strong>{{isMobile && item.tab != 'Total' ?item.tab.substring(0, 1):item.tab}}</strong>
+        <span class="grey--text text--lighten-1">{{item.hours}}</span>
+      </v-tab>
 		</v-tabs>
 
-		<v-tabs-items v-model="tab" :key="Date.now()">
+		<v-tabs-items v-model="tab" :key="Date.now()" >
 			<v-tab-item v-for="itemTitle in tabItems" :key="itemTitle.id" >
 				<v-divider></v-divider>
           <v-list three-line class="d-flex align-center" v-if="itemTitle.tasks.length == 0"  height="200">
@@ -81,11 +97,13 @@
                       {{item.project}} &mdash;
                       <span class="text-caption text-sm-subtitle-2 font-weight-regular">{{item.department}}</span>
                     </v-card-title>
-                    <v-card-subtitle>{{item.hours}} </v-card-subtitle>
                     <v-card-text>{{item.notes}}</v-card-text>
                   </div>
+                  
+                  
                   <v-card-actions>
-                    <v-button @click="dialogUpdate(item.id)">Edit</v-button>
+                    <v-card-subtitle style="margin-top:0">{{item.hours}} </v-card-subtitle>
+                    <v-button secondary icon rounded @click="dialogUpdate(item.id)"><v-icon name="edit" /> </v-button>
                   </v-card-actions>
                 </v-card>
               </v-list-item>
@@ -96,9 +114,88 @@
 			
 		</v-tabs-items>
     
-    <v-drawer v-model="dialog">
-	<div>This text will show up in the drawer</div>
-</v-drawer>
+    <v-drawer v-model="dialog" title="Add/Update Task" icon="task" id="task-drawer">
+      <form>
+        <div class="field full">
+          <v-text-overflow text="Project"></v-text-overflow>
+          <v-select
+            label="Project"
+            filled
+            v-model="task.project"
+            :items="projects"
+          />
+        </div>
+        <div class="field full">
+          <v-text-overflow text="Department"></v-text-overflow>
+          <v-select
+            label="Department"
+            filled
+            v-model="task.department"
+            :items="departments"
+          />
+        </div>
+        <div class="field full">
+          <v-text-overflow text="Time"></v-text-overflow>
+          <v-input 
+            label="Time"
+            placeholder="00:00"
+            filled
+            v-model="task.hours"
+            @focusout="timeConvert()"
+            id="taskTime"
+          />
+        </div>
+        <div class="field full">
+          <v-text-overflow text="Notes"></v-text-overflow>
+          <v-textarea v-model="task.notes" />
+        </div>
+        <div class="field full">
+          <v-text-overflow text="Date"></v-text-overflow>
+          <div class="task-date-wrapper">
+            <v-input 
+              type="text"
+              style="width:90%"
+              v-model="date"
+              
+              placeholder="--"
+            />
+            <v-menu
+              ref="date"
+              :close-on-content-click="false"
+              :show-arrow="true"
+              placement="bottom-start"
+              seamless
+              full-height
+            >
+              <template #activator="{ toggle }">
+                <v-icon class="preview date-btn" name="event" @click="toggle" />
+              </template>
+              <div class="date-input">
+                <v-date-picker
+                  type="date"
+                  :model-value="date"
+                  @update:model-value="dateUpdate"
+                  style="min-width:300px"
+                  
+                />
+              </div>
+            </v-menu>
+          </div>
+        </div>
+                       
+        <v-button v-if="!edit" class="field full" @click="dialogSubmit">Save</v-button>
+        <v-button v-if="edit" class="field full" @click="updateTask(task.id)">Update</v-button>
+        <v-button outlined v-if="edit" class="field full" @click="deleteItem(task.id)">Delete</v-button>
+        <v-button secondary class="field full" @click="dialogClose" >Close</v-button>
+      </form>
+    </v-drawer>
+    <v-dialog v-model="dialogDelete" max-width="500px">
+      <v-sheet>
+        <h2 style="text-align:center">Are you sure you want to delete this item?</h2>
+        <v-button secondary class="field full" @click="closeDelete">Cancel</v-button>
+        <v-button class="field full" @click="deleteTask">OK</v-button>
+      </v-sheet>
+    </v-dialog>
 		</template>
 		<template v-else>
 			<v-table
@@ -148,6 +245,7 @@ export default {
 	// },
 	data() {
 		return {
+      toggle:'',
 			collections: null,
 			activePage:'',
 			dialogm1: '',
@@ -169,7 +267,7 @@ export default {
     departments: [],
     dateUnformated : new Date().toString(),
     dateShow : new Date().toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}),
-    calendarShow : false,
+    calendarShow : '',
     task: {
       id: Date.now() + parseInt(Math.random()*100),
       userId:'',
@@ -206,6 +304,7 @@ export default {
 		],
 		view : 'weekly',
     isMobile : false,
+    user:[]
 		
 		};
 	},
@@ -224,6 +323,16 @@ export default {
 		console.log(this.api);
 
 		this.setTabContentItems();
+    this.projectList();
+    this.departmentList();
+
+    this.api.get('/users/me').then(res => {
+      console.log(res);
+      this.user = res.data.data;
+    })
+
+    
+    
 	},
   destroyed() {
     window.removeEventListener('resize', this.handleResize)
@@ -232,6 +341,9 @@ export default {
 		logToConsole: function () {
 			console.log(this.collections);
 		},
+    dateUpdate(e){
+      this.date = e;
+    },
     handleResize (e){
       console.log(e.target.innerWidth);
       if(e.target.innerWidth <768){
@@ -247,7 +359,7 @@ export default {
       this.dateUnformated = new Date((new Date(x).getTime()) + (new Date(x).getTimezoneOffset()) * 60000);
       // console.log("date" + this.dateUnformated);
       // this.dateShow = new Date(x).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"});
-      this.calendarShow = !this.calendarShow
+      // this.calendarShow = !this.calendarShow
     },
 
     setToday () {
@@ -370,7 +482,8 @@ export default {
 
       for (let i = 0; i < 7; i++) {
         let item = {};
-        item.id = "w"+i+Math.floor(Math.random() * 1000);
+        // item.id = "w"+i+Math.floor(Math.random() * 1000);
+        item.id = i;
         // console.log(tabDate.getDate());
         let first =(i==0 && tabDate.toLocaleDateString('en-us', { weekday:"long" }) == 'Sunday'? tabDate.getDate(): tabDate.getDate()+1) ;
         console.log(first);
@@ -435,51 +548,70 @@ export default {
     },
     dialogSubmit(){
       let that = this
-      if (this.$refs.form.validate()) {
+      // if (this.$refs.form.validate()) {
         this.task.id = Date.now() + parseInt(Math.random()*100);
-        this.task.userId = this.$auth.user.id;
+        // this.task.userId = this.$auth.user.id;
         this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
         
-        // console.log(this.task);
-
-        let data = JSON.stringify({
-        query: `mutation {
-          create_timesheet_item(data: {
-            id: "${this.task.id}",
-            date: "${this.task.date}",
-            dateTime: ${this.task.dateTime},
-            project: "${this.task.project}",
-            department: "${this.task.department}",
-            hours: "${this.task.hours}",
-            notes: "${this.task.notes}",
-            userId: "${this.task.userId}"
-            status: "${this.task.status}"
-          })
-          {
-            id
-            date
-            dateTime 
-            department
-            project
-            userId
-            hours
-            notes
-            user_created{
-                id
-                first_name
-                last_name
-            }
-            user_updated{
-                id
-                first_name
-                last_name
-            }
-            status
-          }
-        }`,
-        variables: {}
+        this.api.post(`/items/Timesheet`,
+    {
+      date : this.task.date,
+      dateTime : this.task.dateTime,
+      department : this.task.department,
+      hours : this.task.hours,
+      notes : this.task.notes,
+      project : this.task.project,
+      status: "published",
+      userId : this.user.id
+    }).then(function (response) {
+        console.log(response);
+        // that.$refs.form.reset();
+        // that.$refs.form.resetValidation();
+        that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
+        that.dialogClose();
+      })
+      .catch(function (error) {
+        console.log(error);
       });
+
+      //   let data = JSON.stringify({
+      //   query: `mutation {
+      //     create_timesheet_item(data: {
+      //       id: "${this.task.id}",
+      //       date: "${this.task.date}",
+      //       dateTime: ${this.task.dateTime},
+      //       project: "${this.task.project}",
+      //       department: "${this.task.department}",
+      //       hours: "${this.task.hours}",
+      //       notes: "${this.task.notes}",
+      //       userId: "${this.task.userId}"
+      //       status: "${this.task.status}"
+      //     })
+      //     {
+      //       id
+      //       date
+      //       dateTime 
+      //       department
+      //       project
+      //       userId
+      //       hours
+      //       notes
+      //       user_created{
+      //           id
+      //           first_name
+      //           last_name
+      //       }
+      //       user_updated{
+      //           id
+      //           first_name
+      //           last_name
+      //       }
+      //       status
+      //     }
+      //   }`,
+      //   variables: {}
+      // });
 
       // let token = this.$cookies.get('directus_access_token')
 
@@ -507,7 +639,7 @@ export default {
 
 
 
-      }
+      // }
 
 
 
@@ -517,7 +649,7 @@ export default {
       
     },
     async updateTask(id){
-      if (this.$refs.form.validate()) {
+      // if (this.$refs.form.validate()) {
         // let tasks = JSON.parse(localStorage.getItem('tasks'));
         // let index = tasks.findIndex((tsk) => (tsk.id == id));
         // this.task.id = id;
@@ -530,55 +662,76 @@ export default {
         
         // console.log(this.task);
 
-        let data = JSON.stringify({
-        query: `mutation {
-          update_timesheet_item(id:"${this.task.id}" ,data: {
-            id:"${this.task.id}"
-            date: "${this.task.date}",
-            dateTime: ${this.task.dateTime},
-            project: "${this.task.project}",
-            department: "${this.task.department}",
-            hours: "${this.task.hours}",
-            notes: "${this.task.notes}",
-            userId: "${this.task.userId}"
-            status: "${this.task.status}"
-          })
-          {
-            id
-            date
-            dateTime 
-            department
-            project
-            userId
-            hours
-            notes
-            user_created{
-                id
-                first_name
-                last_name
-            }
-            user_updated{
-                id
-                first_name
-                last_name
-            }
-            status
-          }
-        }`,
-        variables: {}
+        this.api.patch(`/items/Timesheet/${this.task.id}`,
+    {
+      date : this.task.date,
+      dateTime : this.task.dateTime,
+      department : this.task.department,
+      hours : this.task.hours,
+      notes : this.task.notes,
+      project : this.task.project,
+      status: "published",
+      userId : this.task.userId
+    }).then(function (response) {
+        console.log(response);
+        // that.$refs.form.reset();
+        // that.$refs.form.resetValidation();
+        that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
+        that.dialogClose();
+      })
+      .catch(function (error) {
+        console.log(error);
       });
 
-      // let token = this.$cookies.get('directus_access_token')
+      //   let data = JSON.stringify({
+      //   query: `mutation {
+      //     update_timesheet_item(id:"${this.task.id}" ,data: {
+      //       id:"${this.task.id}"
+      //       date: "${this.task.date}",
+      //       dateTime: ${this.task.dateTime},
+      //       project: "${this.task.project}",
+      //       department: "${this.task.department}",
+      //       hours: "${this.task.hours}",
+      //       notes: "${this.task.notes}",
+      //       userId: "${this.task.userId}"
+      //       status: "${this.task.status}"
+      //     })
+      //     {
+      //       id
+      //       date
+      //       dateTime 
+      //       department
+      //       project
+      //       userId
+      //       hours
+      //       notes
+      //       user_created{
+      //           id
+      //           first_name
+      //           last_name
+      //       }
+      //       user_updated{
+      //           id
+      //           first_name
+      //           last_name
+      //       }
+      //       status
+      //     }
+      //   }`,
+      //   variables: {}
+      // });
 
-      let config = {
-        method: 'post',
-        url: `https://5mee2e5z.directus.app/graphql`,
-        headers: { 
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json'
-        },
-        data : data
-      };
+      // // let token = this.$cookies.get('directus_access_token')
+
+      // let config = {
+      //   method: 'post',
+      //   url: `https://5mee2e5z.directus.app/graphql`,
+      //   headers: { 
+      //     'Authorization': `Bearer ${token}`, 
+      //     'Content-Type': 'application/json'
+      //   },
+      //   data : data
+      // };
 
       // axios(config)
       // .then(function (response) {
@@ -592,32 +745,41 @@ export default {
       //   console.log(error);
       // });
 
-      }
+      // }
     },
     async deleteTask(){
       let id = this.deleteId;
       let that = this
-        let data = JSON.stringify({
-        query: `mutation {
-          delete_timesheet_item(id:"${id}")
-          {
-            id
-          }
-        }`,
-        variables: {}
-      });
+      this.api.delete(`/items/Timesheet/${this.task.id}`).then(function (response) {
+        console.log(response);
+        // that.$refs.form.reset();
+        // that.$refs.form.resetValidation();
+        that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
+        that.dialogDelete = false;
+        that.dialogClose();
+      })
+      // let that = this
+      //   let data = JSON.stringify({
+      //   query: `mutation {
+      //     delete_timesheet_item(id:"${id}")
+      //     {
+      //       id
+      //     }
+      //   }`,
+      //   variables: {}
+      // });
 
-      // let token = this.$cookies.get('directus_access_token')
+      // // let token = this.$cookies.get('directus_access_token')
 
-      let config = {
-        method: 'post',
-        url: `https://5mee2e5z.directus.app/graphql`,
-        headers: { 
-          'Authorization': `Bearer ${token}`, 
-          'Content-Type': 'application/json'
-        },
-        data : data
-      };
+      // let config = {
+      //   method: 'post',
+      //   url: `https://5mee2e5z.directus.app/graphql`,
+      //   headers: { 
+      //     'Authorization': `Bearer ${token}`, 
+      //     'Content-Type': 'application/json'
+      //   },
+      //   data : data
+      // };
 
       // axios(config)
       // .then(function (response) {
@@ -633,7 +795,7 @@ export default {
       
     },
     tabChange (id) {
-      // console.log(id);
+      console.log("hi");
       let currTab = this.tabItems.filter((tab) => (tab.id == id))[0] ;
       if(currTab.date != null){
         this.dateUnformated = new Date(currTab.date).toString();
@@ -644,87 +806,53 @@ export default {
       
       let that = this;
 
-      // let token = this.$cookies.get('directus_access_token')
-      let data = JSON.stringify({
-        query: `query {
-          project {
-            id
-            pcode
-            pname
-          }
-        }`,
-        variables: {}
-      });
+      
 
-      // let config = {
-      //   method: 'post',
-      //   url: `https://5mee2e5z.directus.app/graphql`,
-      //   headers: { 
-      //     'Authorization': `Bearer ${token}`, 
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data : data
-      // };
-
-      // axios(config)
-      // .then(function ({data}) {
-      //   that.projects = [];
-      //   if(data.data.project.length > 0) {
-      //     try {
-      //       for (const doc of data.data.project) {
+      this.api.get(`/items/project`)
+      .then(function (res) {
+        that.projects = [];
+        if(res.data.data.length > 0) {
+          try {
+            for (const doc of res.data.data) {
+              let x = {
+                        text: doc.pcode +' - '+ doc.pname,
+                        value: doc.pcode +' - '+ doc.pname,
+                      }
               
-      //         that.projects.push(doc);
-      //       }
+              that.projects.push(x);
+            }
             
-      //     } catch (err) {}
-      //   }
-      //   // console.log(that.projects);
-      // })
-      // .catch(function (error) {
-      //   console.log(error);
-      // });
+          } catch (err) {}
+        }
+        // console.log(that.projects);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
     },
     departmentList() {
       let that = this;
-      // let token = this.$cookies.get('directus_access_token')
-      let data = JSON.stringify({
-        query: `query {
-          department {
-            id
-            dname
-          }
-        }`,
-        variables: {}
-      });
-
-      // let config = {
-      //   method: 'post',
-      //   url: `https://5mee2e5z.directus.app/graphql`,
-      //   headers: { 
-      //     'Authorization': `Bearer ${token}`, 
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data : data
-      // };
-
-      // axios(config)
-      // .then(function ({data}) {
-      //   that.departments = [];
-      //   if(data.data.department.length > 0) {
-      //     try {
-      //       for (const doc of data.data.department) {
+      this.api.get(`/items/department`)
+      .then(function (res) {
+        that.departments = [];
+        if(res.data.data.length > 0) {
+          try {
+            for (const doc of res.data.data) {
+              let x = {
+                        text: doc.dname,
+                        value: doc.dname,
+                      }
               
-      //         that.departments.push(doc);
-      //       }
+              that.departments.push(x);
+            }
             
-      //     } catch (err) {}
-      //   }
-      //   // console.log(that.departments);
-      // })
-      // .catch(function (error) {
-      //   console.log(error);
-      // });
+          } catch (err) {}
+        }
         
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
 
     },
     deleteItem(id) {
@@ -785,9 +913,15 @@ export default {
       // console.log("hello",val);
 
     },
-    // date: function (val, oldVal) {
-    //   // console.log(val,this.dateUnformated);
-    // }
+    tab: function (val, oldVal) {
+      this.tabChange(val)
+    },
+    dialog: function (val, oldVal){
+      if(!val){
+        this.dialogClose();
+      }
+      
+    }
   },
 	
 };
@@ -802,9 +936,65 @@ export default {
     display: flex;
     flex-direction: row;
 }
+.field.full {
+  padding: 10px 20px;
+}
+.v-text-overflow{
+  padding-bottom: 10px;
+}
+
+.v-tab.horizontal {
+    flex-direction: column;
+}
+
+.v-card-subtitle{
+  margin-top: 0px;
+  padding-bottom: 0;
+  padding-right: 70px;
+}
+.v-card-actions {
+    align-items: center;
+}
+.calendershow {
+    width: 300px;
+}
+.date-btn{
+  position: absolute;
+  top: 25%;
+  right: 20px;
+}
+.task-date-wrapper{
+  position: relative;
+}
+
 @media screen and (max-width:767px) {
+  .v-tabs.horizontal{
+    
+    flex-wrap: wrap;
+  }
   .v-tab.horizontal {
-    padding: 15px !important;
+    padding: 10px 5px !important;
+    min-height: 50px;
+  }
+  .v-card-subtitle{
+    padding: 0 5px;
+  }
+  .v-tabs.horizontal .v-tab:last-child{
+    background: var(--v-button-background-color-disabled);
+    flex-direction: row;
+    gap: 10px;
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .v-card{
+    display: flex;
+  }
+  .today-btn > button {
+    min-width: min-content !important;
+    padding: 10px !important;
+  }
+  .actions .action-buttons>*:not(:last-child) {
+    margin-right: 5px;
   }
 }
 @media screen and (min-width:768px) {
@@ -816,6 +1006,25 @@ export default {
     flex: 0 0 80%;
     max-width: 80%;
   }
+  
 }
 
+</style>
+<style>
+.v-drawer .cancel,.header-bar .nav-toggle {
+    display: none;
+}
+@media screen and (max-width:767px) {
+  .today-btn > button {
+    min-width: min-content !important;
+    padding: 10px !important;
+  }
+  .field.full ,.field.full button{
+  width: 100%;
+  }
+  #dialog-outlet .container.right .v-drawer{
+    max-width: 85vw;
+  }
+  
+}
 </style>
