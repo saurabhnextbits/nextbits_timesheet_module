@@ -116,6 +116,8 @@
     
     <v-drawer v-model="dialog" title="Add/Update Task" icon="task" id="task-drawer">
       <form>
+        <v-info  v-if="error" icon="error" type="danger"><span style="text-align: left;" v-html="error" /></v-info>
+   
         <div class="field full">
           <v-text-overflow text="Project"></v-text-overflow>
           <v-select
@@ -304,7 +306,8 @@ export default {
 		],
 		view : 'weekly',
     isMobile : false,
-    user:[]
+    user:[],
+    error:'',
 		
 		};
 	},
@@ -531,6 +534,7 @@ export default {
       this.dialog = true;
     },
     dialogClose(){
+      this.error = '';
       this.setTabContentItems();
       this.dialog = false;
       this.edit = false;
@@ -546,8 +550,31 @@ export default {
       console.log(this.task);
             
     },
+    formValidate(){
+      this.error = "";
+      console.log(this.task);
+      if(this.task.project == ''){
+        this.error = this.error + 'Project is required <br>'
+      }
+      if(this.task.department == ''){
+        this.error = this.error + 'Department is required <br>'
+      }
+      if(this.task.hours == '' || this.task.hours == null ){
+        this.error = this.error + 'Hours is required <br>'
+      }
+      if(this.error != ''){
+         console.log(this.error);
+        return false
+      }
+      else{
+        console.log('no error');
+        return true
+      }
+    },
     dialogSubmit(){
-      let that = this
+      if(this.formValidate()){
+
+        let that = this
       // if (this.$refs.form.validate()) {
         this.task.id = Date.now() + parseInt(Math.random()*100);
         // this.task.userId = this.$auth.user.id;
@@ -555,88 +582,27 @@ export default {
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
         
         this.api.post(`/items/Timesheet`,
-    {
-      date : this.task.date,
-      dateTime : this.task.dateTime,
-      department : this.task.department,
-      hours : this.task.hours,
-      notes : this.task.notes,
-      project : this.task.project,
-      status: "published"
-    }).then(function (response) {
-        console.log(response);
-        that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
-        that.dialogClose();
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
+        {
+          date : this.task.date,
+          dateTime : this.task.dateTime,
+          department : this.task.department,
+          hours : this.task.hours,
+          notes : this.task.notes,
+          project : this.task.project,
+          status: "published"
+        }).then(function (response) {
+            console.log(response);
+            that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
+            that.dialogClose();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
 
-      //   let data = JSON.stringify({
-      //   query: `mutation {
-      //     create_timesheet_item(data: {
-      //       id: "${this.task.id}",
-      //       date: "${this.task.date}",
-      //       dateTime: ${this.task.dateTime},
-      //       project: "${this.task.project}",
-      //       department: "${this.task.department}",
-      //       hours: "${this.task.hours}",
-      //       notes: "${this.task.notes}",
-      //       userId: "${this.task.userId}"
-      //       status: "${this.task.status}"
-      //     })
-      //     {
-      //       id
-      //       date
-      //       dateTime 
-      //       department
-      //       project
-      //       userId
-      //       hours
-      //       notes
-      //       user_created{
-      //           id
-      //           first_name
-      //           last_name
-      //       }
-      //       user_updated{
-      //           id
-      //           first_name
-      //           last_name
-      //       }
-      //       status
-      //     }
-      //   }`,
-      //   variables: {}
-      // });
+      
 
-      // let token = this.$cookies.get('directus_access_token')
-
-      // let config = {
-      //   method: 'post',
-      //   url: `https://5mee2e5z.directus.app/graphql`,
-      //   headers: { 
-      //     'Authorization': `Bearer ${token}`, 
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data : data
-      // };
-
-      // axios(config)
-      // .then(function (response) {
-      //   console.log(response);
-      //   // that.$refs.form.reset();
-      //   that.$refs.form.resetValidation();
-      //   that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
-      //   that.dialogClose();
-      // })
-      // .catch(function (error) {
-      //   console.log(error);
-      // });
-
-
-
-      // }
+      }
+      
 
 
 
@@ -646,10 +612,8 @@ export default {
       
     },
     async updateTask(id){
-      // if (this.$refs.form.validate()) {
-        // let tasks = JSON.parse(localStorage.getItem('tasks'));
-        // let index = tasks.findIndex((tsk) => (tsk.id == id));
-        // this.task.id = id;
+      if(this.formValidate()){
+        
         this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
 
@@ -671,8 +635,6 @@ export default {
       userId : this.task.userId
     }).then(function (response) {
         console.log(response);
-        // that.$refs.form.reset();
-        // that.$refs.form.resetValidation();
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogClose();
       })
@@ -680,115 +642,19 @@ export default {
         console.log(error);
       });
 
-      //   let data = JSON.stringify({
-      //   query: `mutation {
-      //     update_timesheet_item(id:"${this.task.id}" ,data: {
-      //       id:"${this.task.id}"
-      //       date: "${this.task.date}",
-      //       dateTime: ${this.task.dateTime},
-      //       project: "${this.task.project}",
-      //       department: "${this.task.department}",
-      //       hours: "${this.task.hours}",
-      //       notes: "${this.task.notes}",
-      //       userId: "${this.task.userId}"
-      //       status: "${this.task.status}"
-      //     })
-      //     {
-      //       id
-      //       date
-      //       dateTime 
-      //       department
-      //       project
-      //       userId
-      //       hours
-      //       notes
-      //       user_created{
-      //           id
-      //           first_name
-      //           last_name
-      //       }
-      //       user_updated{
-      //           id
-      //           first_name
-      //           last_name
-      //       }
-      //       status
-      //     }
-      //   }`,
-      //   variables: {}
-      // });
+     
 
-      // // let token = this.$cookies.get('directus_access_token')
-
-      // let config = {
-      //   method: 'post',
-      //   url: `https://5mee2e5z.directus.app/graphql`,
-      //   headers: { 
-      //     'Authorization': `Bearer ${token}`, 
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data : data
-      // };
-
-      // axios(config)
-      // .then(function (response) {
-      //   console.log(response);
-      //   // that.$refs.form.reset();
-      //   that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
-      //   that.$refs.form.resetValidation();
-      //   that.dialogClose();
-      // })
-      // .catch(function (error) {
-      //   console.log(error);
-      // });
-
-      // }
+      }
     },
     async deleteTask(){
       let id = this.deleteId;
       let that = this
       this.api.delete(`/items/Timesheet/${this.task.id}`).then(function (response) {
         console.log(response);
-        // that.$refs.form.reset();
-        // that.$refs.form.resetValidation();
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogDelete = false;
         that.dialogClose();
       })
-      // let that = this
-      //   let data = JSON.stringify({
-      //   query: `mutation {
-      //     delete_timesheet_item(id:"${id}")
-      //     {
-      //       id
-      //     }
-      //   }`,
-      //   variables: {}
-      // });
-
-      // // let token = this.$cookies.get('directus_access_token')
-
-      // let config = {
-      //   method: 'post',
-      //   url: `https://5mee2e5z.directus.app/graphql`,
-      //   headers: { 
-      //     'Authorization': `Bearer ${token}`, 
-      //     'Content-Type': 'application/json'
-      //   },
-      //   data : data
-      // };
-
-      // axios(config)
-      // .then(function (response) {
-      //   console.log(response);
-      //   // that.$refs.form.reset();
-      //   that.$refs.form.resetValidation();
-      //   that.dialogDelete = false;
-      //   that.dialogClose();
-      // })
-      // .catch(function (error) {
-      //   console.log(error);
-      // });
       
     },
     tabChange (id) {
@@ -862,7 +728,11 @@ export default {
     },
     timeConvert(){ 
       let number = this.task.hours;
-      
+      console.log(number);
+      if(number == '' || number == null){
+        this.error = "Hours is Required "
+      }
+      else{
       if(number.includes(':')){
         // console.log(number);
        this.task.hours = number; 
@@ -897,7 +767,7 @@ export default {
       this.task.hours = sign + this.pad(hour) + ':' + this.pad(minute);
     
         }
-      
+    }
     },
   },
   watch: {
@@ -994,7 +864,11 @@ export default {
   }
   .v-card{
     display: flex;
+    justify-content: space-between;
   }
+  .v-card-actions {
+    padding: 10px;
+}
   .today-btn > button {
     min-width: min-content !important;
     padding: 10px !important;
@@ -1003,12 +877,12 @@ export default {
     margin-right: 5px;
   }
   .v-item-group.v-tabs-items, .v-tabs {
-    padding: 0 16px;
+    padding: 0;
   }
 }
 @media screen and (min-width:768px) {
   .v-item-group.v-tabs-items, .v-tabs {
-    padding: 0 48px;
+    padding: 0 32px 0px 48px;
   }
   .v-card {
     display: flex;
@@ -1023,11 +897,34 @@ export default {
 
 </style>
 <style>
+.v-tab-item .v-list:nth-child(2) {
+    padding-top: 8px;
+}
 .v-drawer .cancel,.header-bar .nav-toggle {
     display: none;
 }
 .v-tab.horizontal.active strong{
   font-weight: 800;
+}
+.v-info[data-v-130d5c84] {
+    flex-direction: revert;
+    padding: 10px 25px;
+    gap: 20px;
+}
+.icon[data-v-130d5c84] {
+    width: 20px;
+    height: 20px;
+    margin-top: 5px;
+}
+.title[data-v-130d5c84]{
+    font-size: 15px;
+    font-weight: 600;
+}
+.content[data-v-130d5c84]{
+  text-align: left;
+}
+.v-list-item {
+    padding: 0 !important;
 }
 @media screen and (max-width:767px) {
   .today-btn > button {
@@ -1039,6 +936,9 @@ export default {
   }
   #dialog-outlet .container.right .v-drawer{
     max-width: 85vw;
+  }
+  .header-bar .title-container[data-v-757091cf]{
+    margin-left: 0;
   }
   
 }
