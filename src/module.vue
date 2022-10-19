@@ -1,6 +1,11 @@
 <template>
 	<private-view :title="isMobile ?(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:'short',  month:'short', day:'numeric'})):(new Date(this.dateUnformated).toLocaleDateString('en-us', { weekday:'long', year:'numeric', month:'short', day:'numeric'}))" :key="Date.now()">
-		<template #navigation>
+		<template #title-outer:prepend>
+				<v-button class="header-icon"  rounded icon secondary disabled>
+					<v-icon name="label" color="rgb(79,84,100)"  />
+				</v-button>
+			</template>
+    <template #navigation>
         <CustomNavigationLeftSidebar />
         </template>
     <template #sidebar>
@@ -9,6 +14,7 @@
           <v-select
             v-model="view"
             :items="views"
+            @change="consoleEvent(view)"
           />
         </sidebar-detail>
       </sidebar-detail-group>
@@ -20,13 +26,13 @@
       
     
       
-      <v-button icon rounded secondary @click="prev"  >
+      <v-button v-if="view == 'weekly'" icon rounded secondary @click="prev"  >
         <v-icon  class="grey--text" name="navigate_before" />
       </v-button>
-      <v-button icon rounded secondary @click="next"  >
+      <v-button v-if="view == 'weekly'" icon rounded secondary @click="next"  >
         <v-icon  class="grey--text" name="navigate_next" />
       </v-button>
-      <v-button 
+      <v-button  v-if="view == 'weekly'"
         secondary
         class="grey--text today-btn"
         @click="setToday"
@@ -34,35 +40,120 @@
         Today
       </v-button>
       <v-menu
-			ref="dateUnformated"
-			:close-on-content-click="false"
-			:show-arrow="true"
-			placement="bottom-start"
-			seamless
-			full-height
-		>
-			<template #activator="{ toggle }">
-        <v-button 
-        secondary
-        icon rounded
-        class="grey--text"
-        @click="toggle" 
+        v-if="view == 'weekly'"
+        ref="dateUnformated"
+        :close-on-content-click="false"
+        :show-arrow="true"
+        placement="bottom-start"
+        seamless
+        full-height
       >
-        <v-icon class="preview" name="event"  />
+        <template #activator="{ toggle }">
+          <v-button 
+          secondary
+          icon rounded
+          class="grey--text"
+          @click="toggle" 
+        >
+          <v-icon class="preview" name="event"  />
+        </v-button>
+          
+        </template>
+        <div class="date-input calendershow">
+          <v-date-picker
+            type="date"
+            :model-value="(new Date((new Date(this.dateUnformated).getTime()) - (new Date(this.dateUnformated).getTimezoneOffset()) * 60000).toISOString().substr(0, 10))"
+            @update:model-value="setDate"
+            
+          />
+        </div>
+      </v-menu>
+      <v-button  v-if="view == 'table' && filterFlag == false"
+        icon rounded secondary
+        class="grey--text"
+        @click="filterFlag = true"
+      >
+        <v-icon  class="grey--text" name="filter_list" />
       </v-button>
-				
-			</template>
-			<div class="date-input calendershow">
-				<v-date-picker
-					type="date"
-					:model-value="(new Date((new Date(this.dateUnformated).getTime()) - (new Date(this.dateUnformated).getTimezoneOffset()) * 60000).toISOString().substr(0, 10))"
-					@update:model-value="setDate"
-					
-				/>
-			</div>
-		</v-menu>
+      <v-select
+        v-if="view == 'table' && filterFlag"
+        v-model="filter"
+        class="filter-field"
+        :items="[
+          {
+						text: 'Id',
+						value: 'id'
+					},
+          {
+						text: 'Date',
+						value: 'date'
+					},
+					{
+						text: 'Project',
+						value: 'project'
+					},
+					{
+						text: 'Department',
+						value: 'department'
+					},
+					{
+						text: 'Hours',
+						value: 'hours'
+					}
+				]"
+      />
+      <v-select
+        v-if="view == 'table' && filterFlag"
+        v-model="compare"
+        class="filter-field"
+        :items="[
+          {
+						text: 'Equals',
+						value: '_eq'
+					},
+          {
+						text: `Doesn't equal`,
+						value: '_neq'
+					},
+					{
+						text: 'Less than',
+						value: '_lt'
+					},
+					{
+						text: 'Less than or equal to',
+						value: '_lte'
+					},
+					{
+						text: 'Greater than',
+						value: '_gt'
+					},
+					{
+						text: 'Greater than or equal to',
+						value: '_gte'
+					},
+					{
+						text: 'Contains',
+						value: '_contains'
+					},
+					{
+						text: `Doesn't contain`,
+						value: '_ncontains'
+					}
+				]"
+      />
+      <v-input
+        v-if="view == 'table' && filterFlag"
+        class="filter-field"
+        v-model="filterContent" 
+      />
+      <v-button v-if="view == 'table' && filterFlag" icon rounded  @click="getTimesheet" >
+        <v-icon  class="grey--text" name="check" />
+      </v-button>
+      <v-button v-if="view == 'table' && filterFlag" icon rounded secondary @click="clearFilter" >
+        <v-icon  class="grey--text" name="close" />
+      </v-button>
       <v-button icon rounded @click="dialog=true" >
-      <v-icon  class="grey--text" name="add" />
+        <v-icon  class="grey--text" name="add" />
       </v-button>
     </template>
 		<template v-if="view =='weekly'">
@@ -114,6 +205,41 @@
 			
 		</v-tabs-items>
     
+    
+		</template>
+		<template v-else>
+			<v-table
+        allowHeaderReorder
+				:headers="[
+          {
+						text: 'Id',
+						value: 'id'
+					},
+          {
+						text: 'Date',
+						value: 'date'
+					},
+					{
+						text: 'Project',
+						value: 'project'
+					},
+					{
+						text: 'Department',
+						value: 'department'
+					},
+					{
+						text: 'Hours',
+						value: 'hours'
+					},
+          {
+						text: 'Notes',
+						value: 'notes'
+					}
+				]"
+				:items="timesheetTable"
+        @click:row="itemClick"
+			/>
+		</template>
     <v-drawer v-model="dialog" title="Add/Update Task" icon="task" id="task-drawer">
       <form>
         <v-info  v-if="error" icon="error" type="danger"><span style="text-align: left;" v-html="error" /></v-info>
@@ -187,8 +313,8 @@
                        
         <v-button v-if="!edit" class="field full" @click="dialogSubmit">Save</v-button>
         <v-button v-if="edit" class="field full" @click="updateTask(task.id)">Update</v-button>
-        <v-button outlined v-if="edit" class="field full" @click="deleteItem(task.id)">Delete</v-button>
-        <v-button secondary class="field full" @click="dialogClose" >Close</v-button>
+        <v-button secondary class="field full close-btn" @click="dialogClose" >Close</v-button>
+        <v-button outlined v-if="edit" class="field full delete-btn" @click="deleteItem(task.id)">Delete</v-button>
       </form>
     </v-drawer>
     <v-dialog v-model="dialogDelete" max-width="500px">
@@ -198,37 +324,6 @@
         <v-button class="field full" @click="deleteTask">OK</v-button>
       </v-sheet>
     </v-dialog>
-		</template>
-		<template v-else>
-			<v-table
-				:headers="[
-					{
-						text: 'Name',
-						value: 'name'
-					},
-					{
-						text: 'Phone Number',
-						value: 'tel'
-					},
-					{
-						text: 'Contact',
-						value: 'person'
-					}
-				]"
-				:items="[
-					{
-						name: 'Amsterdam',
-						tel: '020-1122334',
-						person: 'Mariann Rumble'
-					},
-					{
-						name: 'New Haven',
-						tel: '(203) 687-9900',
-						person: 'Helenka Killely'
-					}
-				]"
-			/>
-		</template>
 		<!-- <v-button v-on:click="logToConsole">Log collections to console</v-button> -->
 	</private-view>
 </template>
@@ -300,14 +395,20 @@ export default {
 				value: 'weekly',
 			},
 			{
-				text: 'Monthly',
-				value: 'monthly',
+				text: 'Table',
+				value: 'table',
 			},
 		],
 		view : 'weekly',
     isMobile : false,
     user:[],
     error:'',
+    timesheetTable:[],
+    filter:'id',
+    search:'',
+    compare:'_eq',
+    filterContent:'',
+    filterFlag : false,
 		
 		};
 	},
@@ -324,15 +425,17 @@ export default {
     }
     window.addEventListener('resize', this.handleResize)
 		console.log(this.api);
-
+    this.getTimesheet();
 		this.setTabContentItems();
     this.projectList();
     this.departmentList();
 
     this.api.get('/users/me').then(res => {
-      console.log(res);
+      // console.log(res);
       this.user = res.data.data;
-    })
+    });
+
+
 
     
     
@@ -341,6 +444,9 @@ export default {
     window.removeEventListener('resize', this.handleResize)
   },
 	methods: {
+    consoleEvent(e){
+      console.log(e)
+    },
 		logToConsole: function () {
 			console.log(this.collections);
 		},
@@ -348,7 +454,7 @@ export default {
       this.date = e;
     },
     handleResize (e){
-      console.log(e.target.innerWidth);
+      // console.log(e.target.innerWidth);
       if(e.target.innerWidth <768){
         this.isMobile = true;
       }
@@ -415,6 +521,36 @@ export default {
       return tabitem.hours
     
     },
+    getTimesheet(){
+      let url = `/items/Timesheet`;
+      if(this.filterContent !== ''){
+        url += `?filter={"_and":[{"${this.filter}":{"${this.compare}":"${this.filterContent}"}}]}`
+      }
+      this.api.get(url).then(res => {
+        this.timesheetTable=[];
+        if(res.data.data.length > 0) {
+          try {
+              for (const doc of res.data.data) {
+                // console.log(doc);
+                this.timesheetTable.push(doc);
+              }
+              
+            } catch (err) {}
+        }
+      })
+    },
+    itemClick(res){
+      this.task = res.item;
+      this.edit = true;
+      this.dialog = true;
+    },
+    clearFilter(){
+      this.filter = 'id';
+      this.compare = '_eq';
+      this.filterContent = '';
+      this.filterFlag = false;
+      this.getTimesheet();
+    },
 
     
     setTabContentItems(){
@@ -431,14 +567,14 @@ export default {
       currDate.setMinutes("00");
       currDate.setSeconds("00");
       this.start = parseFloat(new Date((currDate.getTime()) + currDate.getTimezoneOffset() * 60000).getTime());
-      console.log(currDate);
+      // console.log(currDate);
       currDate.setHours("23");
       currDate.setMinutes("59");
       currDate.setSeconds("59");
       currDate.setDate(currDate.getDate() +6);
-      console.log(currDate);
+      // console.log(currDate);
       this.end = parseFloat(new Date((currDate.getTime()) + currDate.getTimezoneOffset() * 60000).getTime());
-      console.log(this.start,this.end);
+      // console.log(this.start,this.end);
 			this.api.get(`/items/Timesheet?filter={"_and":[{"dateTime":{"_lte":"${this.end}"}},{"dateTime":{"_gte":"${this.start}"}}]}`).then((res) => {
 				this.collections = res.data.data;
 				
@@ -446,7 +582,7 @@ export default {
           try {
               that.tabContentItems = [];
               for (const doc of res.data.data) {
-                console.log(doc);
+                // console.log(doc);
                 that.tabContentItems.push(doc);
               }
               // console.log(that.tabContentItems);
@@ -456,7 +592,7 @@ export default {
         else{
           that.setTabItems();
         }
-        console.log(that.tabContentItems);
+        // console.log(that.tabContentItems);
 			});
 
      
@@ -489,7 +625,7 @@ export default {
         item.id = i;
         // console.log(tabDate.getDate());
         let first =(i==0 && tabDate.toLocaleDateString('en-us', { weekday:"long" }) == 'Sunday'? tabDate.getDate(): tabDate.getDate()+1) ;
-        console.log(first);
+        // console.log(first);
         let day = new Date(tabDate.setDate(first)).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"});
         if((tabDate.getDate()) == (new Date(this.dateUnformated).getDate())){
           currId = i;
@@ -510,20 +646,21 @@ export default {
             // console.log(totalItem.hours);
           }
         }
-        console.log(item);
+        // console.log(item);
 
        
         tabItems.push(item);
       }
-      console.log(totalItem);
+      // console.log(totalItem);
       tabItems.push(totalItem);
       this.tabItems = tabItems;
       this.tab = [currId];
-      console.log("tab ----- ",this.tabItems,this.tab);
+      // console.log("tab ----- ",this.tabItems,this.tab);
     }
     else{
       // console.log("else part");
       this.setTabContentItems();
+      
     }
     },
     dialogUpdate(id){
@@ -536,6 +673,7 @@ export default {
     dialogClose(){
       this.error = '';
       this.setTabContentItems();
+      this.getTimesheet();
       this.dialog = false;
       this.edit = false;
       this.date = new Date((new Date(this.dateUnformated).getTime()) - (new Date(this.dateUnformated).getTimezoneOffset()) * 60000).toISOString().substr(0, 10);
@@ -547,12 +685,12 @@ export default {
       this.task.hours='';
       this.task.notes=''
     
-      console.log(this.task);
+      // console.log(this.task);
             
     },
     formValidate(){
       this.error = "";
-      console.log(this.task);
+      // console.log(this.task);
       if(this.task.project == ''){
         this.error = this.error + 'Project is required <br>'
       }
@@ -567,7 +705,7 @@ export default {
         return false
       }
       else{
-        console.log('no error');
+        // console.log('no error');
         return true
       }
     },
@@ -591,7 +729,7 @@ export default {
           project : this.task.project,
           status: "published"
         }).then(function (response) {
-            console.log(response);
+            // console.log(response);
             that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
             that.dialogClose();
           })
@@ -634,7 +772,7 @@ export default {
       status: "published",
       userId : this.task.userId
     }).then(function (response) {
-        console.log(response);
+        // console.log(response);
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogClose();
       })
@@ -650,7 +788,7 @@ export default {
       let id = this.deleteId;
       let that = this
       this.api.delete(`/items/Timesheet/${this.task.id}`).then(function (response) {
-        console.log(response);
+        // console.log(response);
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogDelete = false;
         that.dialogClose();
@@ -658,7 +796,7 @@ export default {
       
     },
     tabChange (id) {
-      console.log("hi");
+      // console.log("hi");
       let currTab = this.tabItems.filter((tab) => (tab.id == id))[0] ;
       if(currTab.date != null){
         this.dateUnformated = new Date(currTab.date).toString();
@@ -728,7 +866,7 @@ export default {
     },
     timeConvert(){ 
       let number = this.task.hours;
-      console.log(number);
+      // console.log(number);
       if(number == '' || number == null){
         this.error = "Hours is Required "
       }
@@ -876,13 +1014,13 @@ export default {
   .actions .action-buttons>*:not(:last-child) {
     margin-right: 5px;
   }
-  .v-item-group.v-tabs-items, .v-tabs {
+  .v-item-group.v-tabs-items, .v-tabs, .v-table {
     padding: 0;
   }
 }
 @media screen and (min-width:768px) {
-  .v-item-group.v-tabs-items, .v-tabs {
-    padding: 0 32px 0px 48px;
+  .v-item-group.v-tabs-items, .v-tabs, .v-table {
+    padding: 0 32px;
   }
   .v-card {
     display: flex;
@@ -892,7 +1030,15 @@ export default {
     flex: 0 0 80%;
     max-width: 80%;
   }
-  
+  .field.full.close-btn{
+    padding-left: 0;
+  }
+  .field.full.delete-btn{
+    float: right;
+  }
+  .filter-field{
+    min-width: 160px;
+  }
 }
 
 </style>
