@@ -68,90 +68,106 @@
           />
         </div>
       </v-menu>
-      <v-button  v-if="view == 'table' && filterFlag == false"
-        icon rounded secondary
-        class="grey--text"
-        @click="filterFlag = true"
+      <v-menu
+        v-if="view == 'table'"
+        ref="filter"
+        :close-on-content-click="false"
+        :close-on-click="true"
+        placement="bottom-start"
+        seamless
+        full-height
       >
-        <v-icon  class="grey--text" name="filter_list" />
-      </v-button>
-      <v-select
-        v-if="view == 'table' && filterFlag"
-        v-model="filter"
-        class="filter-field"
-        :items="[
-          {
-						text: 'Id',
-						value: 'id'
-					},
-          {
-						text: 'Date',
-						value: 'date'
-					},
-					{
-						text: 'Project',
-						value: 'project'
-					},
-					{
-						text: 'Department',
-						value: 'department'
-					},
-					{
-						text: 'Hours',
-						value: 'hours'
-					}
-				]"
-      />
-      <v-select
-        v-if="view == 'table' && filterFlag"
-        v-model="compare"
-        class="filter-field"
-        :items="[
-          {
-						text: 'Equals',
-						value: '_eq'
-					},
-          {
-						text: `Doesn't equal`,
-						value: '_neq'
-					},
-					{
-						text: 'Less than',
-						value: '_lt'
-					},
-					{
-						text: 'Less than or equal to',
-						value: '_lte'
-					},
-					{
-						text: 'Greater than',
-						value: '_gt'
-					},
-					{
-						text: 'Greater than or equal to',
-						value: '_gte'
-					},
-					{
-						text: 'Contains',
-						value: '_contains'
-					},
-					{
-						text: `Doesn't contain`,
-						value: '_ncontains'
-					}
-				]"
-      />
-      <v-input
-        v-if="view == 'table' && filterFlag"
-        class="filter-field"
-        v-model="filterContent" 
-      />
-      <v-button v-if="view == 'table' && filterFlag" icon rounded  @click="getTimesheet" >
-        <v-icon  class="grey--text" name="check" />
-      </v-button>
-      <v-button v-if="view == 'table' && filterFlag" icon rounded secondary @click="clearFilter" >
-        <v-icon  class="grey--text" name="close" />
-      </v-button>
+        <template #activator="{ toggle }">
+          
+        <v-button  
+          icon rounded secondary
+          class="grey--text"
+          id="filter-btn"
+          @click="toggle"
+        >
+          <v-icon  class="grey--text" name="filter_list" />
+        </v-button>
+          
+        </template>
+        <div style="width:300px;padding: 10px 0;">
+          <v-select
+            v-model="filter"
+            class="filter-field"
+            :items="[
+              {
+                text: 'Id',
+                value: 'id'
+              },
+              {
+                text: 'Date',
+                value: 'date'
+              },
+              {
+                text: 'Project',
+                value: 'project'
+              },
+              {
+                text: 'Department',
+                value: 'department'
+              },
+              {
+                text: 'Hours',
+                value: 'hours'
+              }
+            ]"
+          />
+          <v-select
+            v-model="compare"
+            class="filter-field"
+            :items="[
+              {
+                text: 'Equals',
+                value: '_eq'
+              },
+              {
+                text: `Doesn't equal`,
+                value: '_neq'
+              },
+              {
+                text: 'Less than',
+                value: '_lt'
+              },
+              {
+                text: 'Less than or equal to',
+                value: '_lte'
+              },
+              {
+                text: 'Greater than',
+                value: '_gt'
+              },
+              {
+                text: 'Greater than or equal to',
+                value: '_gte'
+              },
+              {
+                text: 'Contains',
+                value: '_contains'
+              },
+              {
+                text: `Doesn't contain`,
+                value: '_ncontains'
+              }
+            ]"
+          />
+          <v-input
+            class="filter-field"
+            v-model="filterContent" 
+          />
+          <v-button class="filter-field"  @click="getTimesheet" >
+            Submit
+          </v-button>
+          <v-button class="filter-field clear" secondary @click="clearFilter" >
+            Clear
+          </v-button>
+        </div>
+      </v-menu>
+      
+      
       <v-button icon rounded @click="dialog=true" >
         <v-icon  class="grey--text" name="add" />
       </v-button>
@@ -927,6 +943,8 @@ export default {
       }
       
     }
+
+
   },
 	
 };
@@ -1036,10 +1054,14 @@ export default {
   .field.full.delete-btn{
     float: right;
   }
-  .filter-field{
-    min-width: 160px;
-  }
+ 
 }
+ .filter-field{
+   margin: 10px 20px;
+  }
+  .filter-field.clear{
+    margin-left: 0;
+  }
 
 </style>
 <style>
@@ -1087,5 +1109,16 @@ export default {
     margin-left: 0;
   }
   
+}
+.filter-field .v-input.full-width, filter-field .v-input.full-width .input , .filter-field.v-input.full-width, filter-field.v-input.full-width .input {
+    width: calc(100% - 40px);
+    margin: 10px 20px;
+}
+.filter-field.v-button {
+    margin: 0 20px 10px;
+    width: calc(50% - 30px ) !important;
+}
+.filter-field.v-button button {
+    min-width: 100%;
 }
 </style>
