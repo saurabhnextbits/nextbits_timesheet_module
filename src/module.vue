@@ -733,16 +733,20 @@ export default {
         this.task.id = Date.now() + parseInt(Math.random()*100);
         // this.task.userId = this.$auth.user.id;
         this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
+        this.task.dateNew = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
+        this.task.hoursCount = this.timestrToSec(this.task.hours)/3600;
         
         this.api.post(`/items/Timesheet`,
         {
           date : this.task.date,
+          dateNew : this.task.dateNew,
           dateTime : this.task.dateTime,
           department : this.task.department,
           hours : this.task.hours,
           notes : this.task.notes,
           project : this.task.project,
+          hoursCount : this.task.hoursCount,
           status: "published"
         }).then(function (response) {
             // console.log(response);
@@ -769,8 +773,9 @@ export default {
       if(this.formValidate()){
         
         this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
+        this.task.dateNew = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
-
+         this.task.hoursCount = this.timestrToSec(this.task.hours)/3600;
         let that = this
         
 
@@ -780,11 +785,13 @@ export default {
         this.api.patch(`/items/Timesheet/${this.task.id}`,
     {
       date : this.task.date,
+      dateNew: this.task.dateNew,
       dateTime : this.task.dateTime,
       department : this.task.department,
       hours : this.task.hours,
       notes : this.task.notes,
       project : this.task.project,
+      hoursCount : this.task.hoursCount,
       status: "published",
       userId : this.task.userId
     }).then(function (response) {
@@ -1120,5 +1127,8 @@ export default {
 }
 .filter-field.v-button button {
     min-width: 100%;
+}
+table[data-v-20f02ea8] tr {
+    --grid-columns: 80px 160px 160px 160px 160px 160px 1fr;
 }
 </style>
