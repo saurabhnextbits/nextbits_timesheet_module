@@ -177,7 +177,7 @@
 		<v-tabs v-model="tab" :key="Date.now()">
 			<v-tab v-for="item in tabItems" :key="item.id" :style="[item.tab == 'Total' ? 'pointer-events: none;':'']" >
         <strong>{{isMobile && item.tab != 'Total' ?item.tab.substring(0, 1):item.tab}}</strong>
-        <span class="grey--text text--lighten-1">{{item.hours}}</span>
+        <span class="grey--text text--lighten-1">{{timeIntegerToStringConvert(item.hours)}}</span>
       </v-tab>
 		</v-tabs>
 
@@ -209,7 +209,7 @@
                   
                   
                   <v-card-actions>
-                    <v-card-subtitle style="margin-top:0">{{item.hours}} </v-card-subtitle>
+                    <v-card-subtitle style="margin-top:0">{{timeIntegerToStringConvert(item.hours)}} </v-card-subtitle>
                     <v-button secondary icon rounded @click="dialogUpdate(item.id)"><v-icon name="edit" /> </v-button>
                   </v-card-actions>
                 </v-card>
@@ -224,7 +224,8 @@
     
 		</template>
 		<template v-else>
-			<v-table
+			<v-table 
+        class="table-view"
         allowHeaderReorder
 				:headers="[
           {
@@ -245,7 +246,7 @@
 					},
 					{
 						text: 'Hours',
-						value: 'hours'
+						value: 'hoursString'
 					},
           {
 						text: 'Notes',
@@ -282,7 +283,7 @@
           <v-text-overflow text="Time"></v-text-overflow>
           <v-input 
             label="Time"
-            placeholder="00:00"
+            placeholder="0"
             filled
             v-model="task.hours"
             @focusout="timeConvert()"
@@ -440,7 +441,7 @@ export default {
       this.isMobile = false;
     }
     window.addEventListener('resize', this.handleResize)
-		console.log(this.api);
+		// console.log(this.api);
     this.getTimesheet();
 		this.setTabContentItems();
     this.projectList();
@@ -461,10 +462,10 @@ export default {
   },
 	methods: {
     consoleEvent(e){
-      console.log(e)
+      // console.log(e)
     },
 		logToConsole: function () {
-			console.log(this.collections);
+			// console.log(this.collections);
 		},
     dateUpdate(e){
       this.date = e;
@@ -548,6 +549,7 @@ export default {
           try {
               for (const doc of res.data.data) {
                 // console.log(doc);
+                doc.hoursString = this.timeIntegerToStringConvert(doc.hours)
                 this.timesheetTable.push(doc);
               }
               
@@ -626,7 +628,7 @@ export default {
         id:"w7"+Math.floor(Math.random() * 1000),
         tab:"Total",
         tasks:[],
-        hours:"00:00"
+        hours:0
         };
       
       let tabDate = new Date(this.start);
@@ -648,17 +650,17 @@ export default {
           // console.log(currId);
         }
         item.tab = new Date(day).toLocaleDateString('en-us', { weekday:"short"});
-        item.date= new Date(day).toString();
+        item.date= new Date(day);
         // console.log(i,"-----",item.date)
         item.tasks = [];
-        item.hours = "00:00";
+        item.hours = 0;
         for(let j=0;j<this.tabContentItems.length;j++){
           // console.log(this.tabContentItems[j].date == day);
-          if(this.tabContentItems[j].date == day){
+          if(new Date(this.tabContentItems[j].date).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}) == day){
             item.tasks.push(this.tabContentItems[j]);
-            item.hours = this.formatTime(this.timestrToSec(item.hours) + this.timestrToSec(this.tabContentItems[j].hours));
+            item.hours = item.hours + this.tabContentItems[j].hours;
             totalItem.tasks.push(this.tabContentItems[j]);
-            totalItem.hours = this.formatTime(this.timestrToSec(totalItem.hours) + this.timestrToSec(this.tabContentItems[j].hours));
+            totalItem.hours = totalItem.hours + this.tabContentItems[j].hours;
             // console.log(totalItem.hours);
           }
         }
@@ -732,21 +734,18 @@ export default {
       // if (this.$refs.form.validate()) {
         this.task.id = Date.now() + parseInt(Math.random()*100);
         // this.task.userId = this.$auth.user.id;
-        this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
-        this.task.dateNew = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
+        this.task.date = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
-        this.task.hoursCount = this.timestrToSec(this.task.hours)/3600;
+        
         
         this.api.post(`/items/Timesheet`,
         {
           date : this.task.date,
-          dateNew : this.task.dateNew,
           dateTime : this.task.dateTime,
           department : this.task.department,
           hours : this.task.hours,
           notes : this.task.notes,
           project : this.task.project,
-          hoursCount : this.task.hoursCount,
           status: "published"
         }).then(function (response) {
             // console.log(response);
@@ -771,11 +770,8 @@ export default {
     },
     async updateTask(id){
       if(this.formValidate()){
-        
-        this.task.date = String(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}));
-        this.task.dateNew = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
+        this.task.date = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
         this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
-         this.task.hoursCount = this.timestrToSec(this.task.hours)/3600;
         let that = this
         
 
@@ -785,13 +781,11 @@ export default {
         this.api.patch(`/items/Timesheet/${this.task.id}`,
     {
       date : this.task.date,
-      dateNew: this.task.dateNew,
       dateTime : this.task.dateTime,
       department : this.task.department,
       hours : this.task.hours,
       notes : this.task.notes,
       project : this.task.project,
-      hoursCount : this.task.hoursCount,
       status: "published",
       userId : this.task.userId
     }).then(function (response) {
@@ -896,25 +890,34 @@ export default {
       else{
       if(number.includes(':')){
         // console.log(number);
-       this.task.hours = number; 
+       this.task.hours = this.timestrToSec(this.task.hours)/3600
+
+      }
+      
+    }
+    },
+    timeIntegerToStringConvert(number){ 
+      
+      if(number == '' || number == null){
+        return '00:00'
       }
       else{
         // console.log(number);
         // Check sign of given number
-      var sign = (number >= 0) ? 1 : -1;
+      let sign = (number >= 0) ? 1 : -1;
 
       // Set positive value of number of sign negative
       number = number * sign;
 
       // Separate the int from the decimal part
-      var hour = Math.floor(number);
-      var decpart = number - hour;
+      let hour = Math.floor(number);
+      let decpart = number - hour;
 
-      var min = 1 / 60;
+      let min = 1 / 60;
       // Round to nearest minute
       decpart = min * Math.round(decpart / min);
 
-      var minute = Math.floor(decpart * 60) + '';
+      let minute = Math.floor(decpart * 60) + '';
 
       // Add padding if need
       // if (minute.length < 2) {
@@ -925,9 +928,9 @@ export default {
       sign = sign == 1 ? '' : '-';
 
       // Concate hours and minutes
-      this.task.hours = sign + this.pad(hour) + ':' + this.pad(minute);
+      return (sign + this.pad(hour) + ':' + this.pad(minute));
     
-        }
+        
     }
     },
   },
@@ -1128,7 +1131,7 @@ export default {
 .filter-field.v-button button {
     min-width: 100%;
 }
-table[data-v-20f02ea8] tr {
+.table-view table[data-v-20f02ea8] tr {
     --grid-columns: 80px 160px 160px 160px 160px 160px 1fr;
 }
 </style>
