@@ -111,8 +111,8 @@
                 value: 'department'
               },
               {
-                text: 'Hours',
-                value: 'hours'
+                text: 'Time',
+                value: 'time'
               }
             ]"
           />
@@ -177,7 +177,7 @@
 		<v-tabs v-model="tab" :key="Date.now()">
 			<v-tab v-for="item in tabItems" :key="item.id" :style="[item.tab == 'Total' ? 'pointer-events: none;':'']" >
         <strong>{{isMobile && item.tab != 'Total' ?item.tab.substring(0, 1):item.tab}}</strong>
-        <span class="grey--text text--lighten-1">{{timeIntegerToStringConvert(item.hours)}}</span>
+        <span class="grey--text text--lighten-1">{{timeIntegerToStringConvert(item.time)}}</span>
       </v-tab>
 		</v-tabs>
 
@@ -209,7 +209,7 @@
                   
                   
                   <v-card-actions>
-                    <v-card-subtitle style="margin-top:0">{{timeIntegerToStringConvert(item.hours)}} </v-card-subtitle>
+                    <v-card-subtitle style="margin-top:0">{{timeIntegerToStringConvert(item.time)}} </v-card-subtitle>
                     <v-button secondary icon rounded @click="dialogUpdate(item.id)"><v-icon name="edit" /> </v-button>
                   </v-card-actions>
                 </v-card>
@@ -245,7 +245,7 @@
 						value: 'department'
 					},
 					{
-						text: 'Hours',
+						text: 'Time',
 						value: 'hoursString'
 					},
           {
@@ -285,7 +285,7 @@
             label="Time"
             placeholder="0"
             filled
-            v-model="task.hours"
+            v-model="task.time"
             @focusout="timeConvert()"
             id="taskTime"
           />
@@ -386,10 +386,10 @@ export default {
       id: Date.now() + parseInt(Math.random()*100),
       userId:'',
       date: new Date(),
-      dateTime: new Date().getTime(),
+      timestamp: new Date().getTime(),
       project:'',
       department:'',
-      hours:'',
+      time:'',
       notes:'',
       status:'published'
     },
@@ -531,15 +531,15 @@ export default {
       for(let i=0;i< this.tabContentItems.length; i++){
         // console.log(this.tabContentItems[i]);
         if(this.tabContentItems[i].day == tabitem.tab || tabitem.tab == 'Total'){
-          tabitem.hours = this.formatTime(this.timestrToSec(tabitem.hours) + this.timestrToSec(this.tabContentItems[i].hours));
+          tabitem.time = this.formatTime(this.timestrToSec(tabitem.time) + this.timestrToSec(this.tabContentItems[i].time));
         }
       }
-      this.tabItems[tabitem.id].hours = tabitem.hours;
-      return tabitem.hours
+      this.tabItems[tabitem.id].time = tabitem.time;
+      return tabitem.time
     
     },
     getTimesheet(){
-      let url = `/items/Timesheet`;
+      let url = `/items/nextbits_timesheet`;
       if(this.filterContent !== ''){
         url += `?filter={"_and":[{"${this.filter}":{"${this.compare}":"${this.filterContent}"}}]}`
       }
@@ -549,7 +549,7 @@ export default {
           try {
               for (const doc of res.data.data) {
                 // console.log(doc);
-                doc.hoursString = this.timeIntegerToStringConvert(doc.hours)
+                doc.hoursString = this.timeIntegerToStringConvert(doc.time)
                 this.timesheetTable.push(doc);
               }
               
@@ -593,7 +593,7 @@ export default {
       // console.log(currDate);
       this.end = parseFloat(new Date((currDate.getTime()) + currDate.getTimezoneOffset() * 60000).getTime());
       // console.log(this.start,this.end);
-			this.api.get(`/items/Timesheet?filter={"_and":[{"dateTime":{"_lte":"${this.end}"}},{"dateTime":{"_gte":"${this.start}"}}]}`).then((res) => {
+			this.api.get(`/items/nextbits_timesheet?filter={"_and":[{"timestamp":{"_lte":"${this.end}"}},{"timestamp":{"_gte":"${this.start}"}}]}`).then((res) => {
 				this.collections = res.data.data;
 				
         if(res.data.data.length > 0) {
@@ -628,7 +628,7 @@ export default {
         id:"w7"+Math.floor(Math.random() * 1000),
         tab:"Total",
         tasks:[],
-        hours:0
+        time:0
         };
       
       let tabDate = new Date(this.start);
@@ -653,15 +653,15 @@ export default {
         item.date= new Date(day);
         // console.log(i,"-----",item.date)
         item.tasks = [];
-        item.hours = 0;
+        item.time = 0;
         for(let j=0;j<this.tabContentItems.length;j++){
           // console.log(this.tabContentItems[j].date == day);
           if(new Date(this.tabContentItems[j].date).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"}) == day){
             item.tasks.push(this.tabContentItems[j]);
-            item.hours = item.hours + this.tabContentItems[j].hours;
+            item.time = item.time + this.tabContentItems[j].time;
             totalItem.tasks.push(this.tabContentItems[j]);
-            totalItem.hours = totalItem.hours + this.tabContentItems[j].hours;
-            // console.log(totalItem.hours);
+            totalItem.time = totalItem.time + this.tabContentItems[j].time;
+            // console.log(totalItem.time);
           }
         }
         // console.log(item);
@@ -697,10 +697,10 @@ export default {
       this.date = new Date((new Date(this.dateUnformated).getTime()) - (new Date(this.dateUnformated).getTimezoneOffset()) * 60000).toISOString().substr(0, 10);
       this.task.id='';
       this.task.date = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).toLocaleDateString('en-us', { weekday:"long", year:"numeric", month:"short", day:"numeric"});
-      this.task.dateTime = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime();
+      this.task.timestamp = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime();
       this.task.project='';
       this.task.department='';
-      this.task.hours='';
+      this.task.time='';
       this.task.notes=''
     
       // console.log(this.task);
@@ -715,7 +715,7 @@ export default {
       if(this.task.department == ''){
         this.error = this.error + 'Department is required <br>'
       }
-      if(this.task.hours == '' || this.task.hours == null ){
+      if(this.task.time == '' || this.task.time == null ){
         this.error = this.error + 'Hours is required <br>'
       }
       if(this.error != ''){
@@ -735,15 +735,15 @@ export default {
         this.task.id = Date.now() + parseInt(Math.random()*100);
         // this.task.userId = this.$auth.user.id;
         this.task.date = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
-        this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
+        this.task.timestamp = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
         
         
-        this.api.post(`/items/Timesheet`,
+        this.api.post(`/items/nextbits_timesheet`,
         {
           date : this.task.date,
-          dateTime : this.task.dateTime,
+          timestamp : this.task.timestamp,
           department : this.task.department,
-          hours : this.task.hours,
+          time : this.task.time,
           notes : this.task.notes,
           project : this.task.project,
           status: "published"
@@ -771,19 +771,19 @@ export default {
     async updateTask(id){
       if(this.formValidate()){
         this.task.date = new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000);
-        this.task.dateTime = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
+        this.task.timestamp = parseFloat(new Date((new Date(this.date).getTime()) + (new Date(this.date).getTimezoneOffset()) * 60000).getTime());
         let that = this
         
 
         
         // console.log(this.task);
 
-        this.api.patch(`/items/Timesheet/${this.task.id}`,
+        this.api.patch(`/items/nextbits_timesheet/${this.task.id}`,
     {
       date : this.task.date,
-      dateTime : this.task.dateTime,
+      timestamp : this.task.timestamp,
       department : this.task.department,
-      hours : this.task.hours,
+      time : this.task.time,
       notes : this.task.notes,
       project : this.task.project,
       status: "published",
@@ -804,7 +804,7 @@ export default {
     async deleteTask(){
       let id = this.deleteId;
       let that = this
-      this.api.delete(`/items/Timesheet/${this.task.id}`).then(function (response) {
+      this.api.delete(`/items/nextbits_timesheet/${this.task.id}`).then(function (response) {
         // console.log(response);
         that.dateUnformated = new Date((new Date(that.date).getTime()) + (new Date(that.date).getTimezoneOffset()) * 60000);
         that.dialogDelete = false;
@@ -826,15 +826,15 @@ export default {
 
       
 
-      this.api.get(`/items/project`)
+      this.api.get(`/items/nextbits_project`)
       .then(function (res) {
         that.projects = [];
         if(res.data.data.length > 0) {
           try {
             for (const doc of res.data.data) {
               let x = {
-                        text: doc.pcode +' - '+ doc.pname,
-                        value: doc.pcode +' - '+ doc.pname,
+                        text: doc.code +' - '+ doc.name,
+                        value: doc.code +' - '+ doc.name,
                       }
               
               that.projects.push(x);
@@ -850,15 +850,15 @@ export default {
     },
     departmentList() {
       let that = this;
-      this.api.get(`/items/department`)
+      this.api.get(`/items/nextbits_department`)
       .then(function (res) {
         that.departments = [];
         if(res.data.data.length > 0) {
           try {
             for (const doc of res.data.data) {
               let x = {
-                        text: doc.dname,
-                        value: doc.dname,
+                        text: doc.name,
+                        value: doc.name,
                       }
               
               that.departments.push(x);
@@ -882,7 +882,7 @@ export default {
       this.dialogDelete = false
     },
     timeConvert(){ 
-      let number = this.task.hours;
+      let number = this.task.time;
       // console.log(number);
       if(number == '' || number == null){
         this.error = "Hours is Required "
@@ -890,7 +890,7 @@ export default {
       else{
       if(number.includes(':')){
         // console.log(number);
-       this.task.hours = this.timestrToSec(this.task.hours)/3600
+       this.task.time = this.timestrToSec(this.task.time)/3600
 
       }
       
